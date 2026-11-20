@@ -1,0 +1,57 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build MedMinder IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: |
+          ls -d /Applications/Xcode*
+          XCODE_APP=$(ls -d /Applications/Xcode_16* 2>/dev/null | tail -n 1)
+          if [ -n "$XCODE_APP" ]; then
+            echo "Selecting $XCODE_APP"
+            sudo xcode-select -s "$XCODE_APP"
+          fi
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen || true
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Build Archive (Unsigned)
+        run: |
+          xcodebuild -project MedMinder.xcodeproj \
+            -scheme MedMinder \
+            -destination "generic/platform=iOS" \
+            -archivePath build/MedMinder.xcarchive \
+            -configuration Release \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package into IPA
+        run: |
+          mkdir -p build/Payload
+          cp -r build/MedMinder.xcarchive/Products/Applications/MedMinder.app build/Payload/
+          cd build
+          zip -qr MedMinder.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MedMinder-IPA
+          path: build/MedMinder.ipa
+          retention-days: 30

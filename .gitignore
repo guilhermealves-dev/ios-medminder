@@ -1,0 +1,23 @@
+# Big binary reference files
+*.xapk
+*.apk
+*.ipa
+*.zip
+*.tar.gz
+
+# Xcode & Apple
+.DS_Store
+*/.DS_Store
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+!project.yml
+
+# Fastlane / Carthage / CocoaPods
+Pods/
+Carthage/Build/
+
+# User-specific
+*.xcuserstate
+xcuserdata/

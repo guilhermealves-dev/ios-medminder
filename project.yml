@@ -1,0 +1,25 @@
+name: MedMinder
+options:
+  bundleIdPrefix: com.guilherme
+  xcodeVersion: "15.4"
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  MedMinder:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: MedMinder
+    settings:
+      base:
+        PRODUCT_NAME: MedMinder
+        PRODUCT_BUNDLE_IDENTIFIER: com.guilherme.MedMinder
+        INFOPLIST_FILE: MedMinder/Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
