@@ -2,11 +2,15 @@ import SwiftUI
 
 public struct TodayView: View {
     @ObservedObject var storage = StorageService.shared
+    @ObservedObject var language = LanguageManager.shared
     @State private var showingAddMedication = false
     
-    private var calendar: Calendar { Calendar.current }
+    private var calendar: Calendar {
+        var cal = Calendar.current
+        cal.locale = language.currentLanguage == .ptBR ? Locale(identifier: "pt_BR") : Locale(identifier: "en_US")
+        return cal
+    }
     
-    // Week days around selected date
     private var currentWeekDays: [Date] {
         let today = Date()
         let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)) ?? today
@@ -45,7 +49,7 @@ public struct TodayView: View {
                     // 3. Progress Card
                     progressCardView
                     
-                    // 4. Period Groups (Morning, Afternoon, Evening, Night)
+                    // 4. Period Groups
                     if dosesForSelectedDate.isEmpty {
                         emptyStateView
                     } else {
@@ -61,7 +65,7 @@ public struct TodayView: View {
                 .padding(.bottom, 30)
             }
             .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
-            .navigationTitle("Today")
+            .navigationTitle(loc("today_title"))
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -148,10 +152,10 @@ public struct TodayView: View {
             }
             
             VStack(alignment: .leading, spacing: 3) {
-                Text("Daily Adherence")
+                Text(loc("daily_adherence"))
                     .font(.headline)
                 
-                Text(totalDosesCount == 0 ? "No meds scheduled" : "\(completedDosesCount) of \(totalDosesCount) doses taken")
+                Text(totalDosesCount == 0 ? loc("no_meds_scheduled") : String(format: loc("doses_taken_format"), completedDosesCount, totalDosesCount))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -159,7 +163,7 @@ public struct TodayView: View {
             Spacer()
             
             if totalDosesCount > 0 && completedDosesCount < totalDosesCount {
-                Button("Take All") {
+                Button(loc("take_all")) {
                     storage.takeAllPending(on: storage.selectedDate)
                 }
                 .font(.footnote)
@@ -187,10 +191,10 @@ public struct TodayView: View {
                         .font(.title3)
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Low Stock: \(med.name)")
+                        Text(String(format: loc("low_stock_banner"), med.name))
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        Text("Only \(Int(med.currentStock)) doses left. Refill soon!")
+                        Text(String(format: loc("only_doses_left"), Int(med.currentStock)))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -228,7 +232,7 @@ public struct TodayView: View {
                 HStack(spacing: 6) {
                     Image(systemName: period.icon)
                         .foregroundColor(period.color)
-                    Text(period.rawValue)
+                    Text(period.localizedTitle)
                         .font(.headline)
                         .fontWeight(.bold)
                 }
@@ -237,7 +241,7 @@ public struct TodayView: View {
                 
                 let pendingCount = items.filter { $0.status == .pending }.count
                 if pendingCount > 1 {
-                    Button("Take All") {
+                    Button(loc("take_all")) {
                         storage.takeAllPending(for: period, on: storage.selectedDate)
                     }
                     .font(.caption)
@@ -270,14 +274,14 @@ public struct TodayView: View {
             Image(systemName: "heart.text.square")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
-            Text("No Medications Scheduled")
+            Text(loc("no_meds_scheduled"))
                 .font(.headline)
-            Text("Enjoy your free day or add medications to track your treatment.")
+            Text(loc("free_day_msg"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
             
-            Button("Add Medication") {
+            Button(loc("add_medication")) {
                 showingAddMedication = true
             }
             .font(.subheadline)
@@ -296,6 +300,7 @@ public struct TodayView: View {
     // MARK: - Helpers
     private func dayOfWeekLetter(for date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.locale = language.currentLanguage == .ptBR ? Locale(identifier: "pt_BR") : Locale(identifier: "en_US")
         formatter.dateFormat = "EEE"
         return formatter.string(from: date).uppercased()
     }

@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct CabinetView: View {
     @ObservedObject var storage = StorageService.shared
+    @ObservedObject var language = LanguageManager.shared
     @State private var showingRefillSheet = false
     @State private var selectedMedicationForRefill: Medication?
     @State private var refillQuantityString = "30"
@@ -19,14 +20,14 @@ public struct CabinetView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(med.name)
                                         .font(.headline)
-                                    Text("\(Int(med.currentStock)) pills remaining (below \(Int(med.refillThreshold)))")
+                                    Text(String(format: loc("pills_remaining_below"), Int(med.currentStock), Int(med.refillThreshold)))
                                         .font(.caption)
                                         .foregroundColor(.orange)
                                 }
                                 
                                 Spacer()
                                 
-                                Button("Refill") {
+                                Button(loc("refill_button")) {
                                     selectedMedicationForRefill = med
                                     refillQuantityString = "30"
                                     showingRefillSheet = true
@@ -41,71 +42,78 @@ public struct CabinetView: View {
                             }
                         }
                     } header: {
-                        Label("Refill Needed", systemImage: "exclamationmark.triangle.fill")
+                        Label(loc("refill_needed"), systemImage: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
                     }
                 }
                 
                 // Section 2: All Inventory Items
                 Section {
-                    ForEach(storage.medications) { med in
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(spacing: 12) {
-                                PillIconView(form: med.form, color: med.themeColor.color, size: 36)
-                                
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(med.name)
-                                        .font(.headline)
-                                    Text(med.strength.isEmpty ? "Standard dose" : med.strength)
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                Button("+30") {
-                                    var updated = med
-                                    updated.currentStock += 30
-                                    storage.updateMedication(updated)
-                                }
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.accentColor)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.accentColor.opacity(0.12))
-                                .cornerRadius(8)
-                            }
-                            
-                            // Stock progress bar & estimate
-                            VStack(spacing: 4) {
-                                ProgressView(
-                                    value: min(med.currentStock, 60),
-                                    total: 60
-                                )
-                                .tint(med.currentStock <= med.refillThreshold ? .orange : med.themeColor.color)
-                                
-                                HStack {
-                                    Text("\(Int(med.currentStock)) pills in stock")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
+                    if storage.medications.isEmpty {
+                        Text(loc("no_meds_added"))
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 8)
+                    } else {
+                        ForEach(storage.medications) { med in
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(spacing: 12) {
+                                    PillIconView(form: med.form, color: med.themeColor.color, size: 36)
+                                    
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(med.name)
+                                            .font(.headline)
+                                        Text(med.strength.isEmpty ? loc("standard_dose") : med.strength)
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
                                     Spacer()
-                                    let daysLeft = calculateDaysRemaining(for: med)
-                                    Text(daysLeft > 0 ? "~\(daysLeft) days left" : "Depleted")
-                                        .font(.caption2)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(daysLeft <= 5 ? .orange : .secondary)
+                                    
+                                    Button("+30") {
+                                        var updated = med
+                                        updated.currentStock += 30
+                                        storage.updateMedication(updated)
+                                    }
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.accentColor)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.accentColor.opacity(0.12))
+                                    .cornerRadius(8)
+                                }
+                                
+                                // Stock progress bar & estimate
+                                VStack(spacing: 4) {
+                                    ProgressView(
+                                        value: min(med.currentStock, 60),
+                                        total: 60
+                                    )
+                                    .tint(med.currentStock <= med.refillThreshold ? .orange : med.themeColor.color)
+                                    
+                                    HStack {
+                                        Text(String(format: loc("in_stock_label"), Int(med.currentStock)))
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        let daysLeft = calculateDaysRemaining(for: med)
+                                        Text(daysLeft > 0 ? String(format: loc("days_left_estimate"), daysLeft) : loc("depleted"))
+                                            .font(.caption2)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(daysLeft <= 5 ? .orange : .secondary)
+                                    }
                                 }
                             }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
                     }
                 } header: {
-                    Text("Pill Cabinet Inventory (\(storage.medications.count))")
+                    Text(String(format: loc("cabinet_inventory"), storage.medications.count))
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Cabinet")
+            .navigationTitle(loc("cabinet_title"))
             .sheet(isPresented: $showingRefillSheet) {
                 refillModalSheet
             }
@@ -121,14 +129,14 @@ public struct CabinetView: View {
                             PillIconView(form: med.form, color: med.themeColor.color, size: 32)
                             VStack(alignment: .leading) {
                                 Text(med.name).font(.headline)
-                                Text("Current stock: \(Int(med.currentStock))").font(.caption).foregroundColor(.secondary)
+                                Text(String(format: loc("in_stock_label"), Int(med.currentStock))).font(.caption).foregroundColor(.secondary)
                             }
                         }
                     }
                     
                     Section {
                         HStack {
-                            Text("Units to add")
+                            Text(loc("units_to_add"))
                             Spacer()
                             TextField("30", text: $refillQuantityString)
                                 .keyboardType(.numberPad)
@@ -144,18 +152,18 @@ public struct CabinetView: View {
                         }
                         .buttonStyle(.bordered)
                     } header: {
-                        Text("Add Stock")
+                        Text(loc("refill_medication_title"))
                     }
                 }
             }
-            .navigationTitle("Refill Medication")
+            .navigationTitle(loc("refill_medication_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { showingRefillSheet = false }
+                    Button(loc("cancel")) { showingRefillSheet = false }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Confirm") {
+                    Button(loc("confirm")) {
                         if var med = selectedMedicationForRefill,
                            let amount = Double(refillQuantityString) {
                             med.currentStock += amount

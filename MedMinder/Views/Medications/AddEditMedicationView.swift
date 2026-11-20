@@ -3,6 +3,7 @@ import SwiftUI
 public struct AddEditMedicationView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var storage = StorageService.shared
+    @ObservedObject var language = LanguageManager.shared
     
     public var editingMedication: Medication?
     
@@ -22,10 +23,19 @@ public struct AddEditMedicationView: View {
     @State private var showingTimePicker = false
     @State private var newDoseDate = Date()
     
-    private let weekdays = [
-        (1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"),
-        (5, "Thu"), (6, "Fri"), (7, "Sat")
-    ]
+    private var weekdays: [(Int, String)] {
+        if language.currentLanguage == .ptBR {
+            return [
+                (1, "Dom"), (2, "Seg"), (3, "Ter"), (4, "Qua"),
+                (5, "Qui"), (6, "Sex"), (7, "Sáb")
+            ]
+        } else {
+            return [
+                (1, "Sun"), (2, "Mon"), (3, "Tue"), (4, "Wed"),
+                (5, "Thu"), (6, "Fri"), (7, "Sat")
+            ]
+        }
+    }
     
     public init(editingMedication: Medication? = nil) {
         self.editingMedication = editingMedication
@@ -41,21 +51,21 @@ public struct AddEditMedicationView: View {
                             .padding(4)
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(name.isEmpty ? "Medication Name" : name)
+                            Text(name.isEmpty ? loc("med_name_label") : name)
                                 .font(.headline)
                                 .foregroundColor(name.isEmpty ? .secondary : .primary)
                             
-                            Text(strength.isEmpty ? "Dosage (e.g. 500mg)" : strength)
+                            Text(strength.isEmpty ? loc("strength_placeholder") : strength)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                     }
                     .padding(.vertical, 4)
                     
-                    TextField("Medication Name (e.g. Ibuprofen)", text: $name)
-                    TextField("Strength / Dosage (e.g. 400 mg)", text: $strength)
+                    TextField(loc("med_name_placeholder"), text: $name)
+                    TextField(loc("strength_placeholder"), text: $strength)
                 } header: {
-                    Text("Basic Info")
+                    Text(loc("basic_info"))
                 }
                 
                 // Section 2: Visual Appearance (Form & Color)
@@ -71,11 +81,11 @@ public struct AddEditMedicationView: View {
                                     VStack(spacing: 6) {
                                         Image(systemName: item.systemIcon)
                                             .font(.system(size: 20))
-                                        Text(item.rawValue)
+                                        Text(item.localizedTitle)
                                             .font(.caption2)
                                             .lineLimit(1)
                                     }
-                                    .frame(width: 74, height: 60)
+                                    .frame(width: 82, height: 60)
                                     .foregroundColor(isSelected ? .white : .primary)
                                     .background(isSelected ? themeColor.color : Color(UIColor.tertiarySystemGroupedBackground))
                                     .cornerRadius(12)
@@ -113,14 +123,14 @@ public struct AddEditMedicationView: View {
                     }
                     .padding(.vertical, 6)
                 } header: {
-                    Text("Pill Appearance")
+                    Text(loc("appearance"))
                 }
                 
                 // Section 3: Schedule & Frequency
                 Section {
-                    Picker("Frequency", selection: $frequency) {
+                    Picker(loc("frequency_label"), selection: $frequency) {
                         ForEach(FrequencyType.allCases) { type in
-                            Text(type.rawValue).tag(type)
+                            Text(type.localizedTitle).tag(type)
                         }
                     }
                     
@@ -150,20 +160,20 @@ public struct AddEditMedicationView: View {
                         .padding(.vertical, 4)
                     }
                     
-                    Picker("Take with food?", selection: $instruction) {
+                    Picker(loc("meal_label"), selection: $instruction) {
                         ForEach(MealInstruction.allCases) { inst in
-                            Label(inst.rawValue, systemImage: inst.icon).tag(inst)
+                            Label(inst.localizedTitle, systemImage: inst.icon).tag(inst)
                         }
                     }
                 } header: {
-                    Text("Schedule")
+                    Text(loc("schedule"))
                 }
                 
                 // Section 4: Dose Times of Day
                 Section {
                     ForEach(Array(doseTimes.enumerated()), id: \.element.id) { index, dose in
                         HStack {
-                            Text("Dose \(index + 1)")
+                            Text(String(format: loc("dose_number"), index + 1))
                                 .font(.subheadline)
                             Spacer()
                             Text(dose.formattedTime)
@@ -186,60 +196,60 @@ public struct AddEditMedicationView: View {
                     Button {
                         showingTimePicker = true
                     } label: {
-                        Label("Add Another Dose Time", systemImage: "plus")
+                        Label(loc("add_another_time"), systemImage: "plus")
                             .foregroundColor(.accentColor)
                     }
                 } header: {
-                    Text("Dose Times")
+                    Text(loc("dose_times_header"))
                 }
                 
                 // Section 5: Inventory & Refill Reminders
                 Section {
                     HStack {
-                        Text("Current Stock")
+                        Text(loc("current_stock"))
                         Spacer()
                         TextField("30", text: $currentStock)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
-                        Text("pills").foregroundColor(.secondary)
+                        Text(loc("pills_unit")).foregroundColor(.secondary)
                     }
                     
-                    Toggle("Refill Reminder", isOn: $refillAlertEnabled)
+                    Toggle(loc("refill_reminder"), isOn: $refillAlertEnabled)
                     
                     if refillAlertEnabled {
                         HStack {
-                            Text("Alert When Below")
+                            Text(loc("alert_when_below"))
                             Spacer()
                             TextField("5", text: $refillThreshold)
                                 .keyboardType(.numberPad)
                                 .multilineTextAlignment(.trailing)
                                 .frame(width: 80)
-                            Text("pills").foregroundColor(.secondary)
+                            Text(loc("pills_unit")).foregroundColor(.secondary)
                         }
                     }
                 } header: {
-                    Text("Inventory & Refill")
+                    Text(loc("inventory_header"))
                 }
                 
                 // Section 6: Notes
                 Section {
-                    TextField("Doctor instructions, storage conditions, etc.", text: $notes)
+                    TextField(loc("notes_placeholder"), text: $notes)
                 } header: {
-                    Text("Notes")
+                    Text(loc("notes_header"))
                 }
             }
-            .navigationTitle(editingMedication == nil ? "Add Medication" : "Edit Medication")
+            .navigationTitle(editingMedication == nil ? loc("new_medication") : loc("edit_medication"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(loc("cancel")) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button(loc("save")) {
                         saveMedication()
                     }
                     .fontWeight(.bold)
@@ -260,7 +270,7 @@ public struct AddEditMedicationView: View {
         NavigationView {
             VStack {
                 DatePicker(
-                    "Select Time",
+                    loc("select_time"),
                     selection: $newDoseDate,
                     displayedComponents: .hourAndMinute
                 )
@@ -270,14 +280,14 @@ public struct AddEditMedicationView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Add Dose Time")
+            .navigationTitle(loc("select_time"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { showingTimePicker = false }
+                    Button(loc("cancel")) { showingTimePicker = false }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Add") {
+                    Button(loc("add")) {
                         let comps = Calendar.current.dateComponents([.hour, .minute], from: newDoseDate)
                         let newDose = DoseTime(hour: comps.hour ?? 8, minute: comps.minute ?? 0)
                         doseTimes.append(newDose)

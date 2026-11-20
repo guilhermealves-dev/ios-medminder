@@ -26,9 +26,9 @@ public final class StorageService: ObservableObject {
     
     public init() {
         loadData()
-        if medications.isEmpty {
-            seedSampleData()
-        }
+        
+        // One-time cleanup of legacy demo medications if present
+        cleanupLegacySampleDataIfNeeded()
     }
     
     // MARK: - Persistence
@@ -57,6 +57,19 @@ public final class StorageService: ObservableObject {
         
         if let data = try? encoder.encode(doseLogs) {
             try? data.write(to: logsURL)
+        }
+    }
+    
+    public func clearAllData() {
+        medications.removeAll()
+        doseLogs.removeAll()
+        saveData()
+    }
+    
+    private func cleanupLegacySampleDataIfNeeded() {
+        let demoNames = ["Vitamin D3", "Omega-3 Fish Oil", "Magnesium Glycinate"]
+        if medications.count == 3 && medications.allSatisfy({ demoNames.contains($0.name) }) {
+            clearAllData()
         }
     }
     
@@ -227,51 +240,5 @@ public final class StorageService: ObservableObject {
     
     public var lowStockMeds: [Medication] {
         medications.filter { $0.isActive && $0.refillAlertEnabled && $0.currentStock <= $0.refillThreshold }
-    }
-    
-    // MARK: - Seed Sample Data
-    
-    private func seedSampleData() {
-        let med1 = Medication(
-            name: "Vitamin D3",
-            strength: "2000 IU",
-            form: .capsule,
-            themeColor: .amber,
-            instruction: .withMeal,
-            frequency: .everyday,
-            doseTimes: [DoseTime(hour: 8, minute: 30, doseAmount: 1)],
-            currentStock: 45,
-            refillThreshold: 7,
-            notes: "Take with breakfast"
-        )
-        
-        let med2 = Medication(
-            name: "Omega-3 Fish Oil",
-            strength: "1000 mg",
-            form: .capsule,
-            themeColor: .sapphire,
-            instruction: .afterMeal,
-            frequency: .everyday,
-            doseTimes: [DoseTime(hour: 12, minute: 30, doseAmount: 1), DoseTime(hour: 20, minute: 0, doseAmount: 1)],
-            currentStock: 18,
-            refillThreshold: 5,
-            notes: "Heart & brain health"
-        )
-        
-        let med3 = Medication(
-            name: "Magnesium Glycinate",
-            strength: "400 mg",
-            form: .tablet,
-            themeColor: .violet,
-            instruction: .beforeMeal,
-            frequency: .everyday,
-            doseTimes: [DoseTime(hour: 21, minute: 30, doseAmount: 1)],
-            currentStock: 4, // Intentionally low for refill demo!
-            refillThreshold: 5,
-            notes: "Take 30 mins before sleep"
-        )
-        
-        self.medications = [med1, med2, med3]
-        saveData()
     }
 }

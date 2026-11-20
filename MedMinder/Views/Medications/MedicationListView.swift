@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct MedicationListView: View {
     @ObservedObject var storage = StorageService.shared
+    @ObservedObject var language = LanguageManager.shared
     @State private var searchText = ""
     @State private var showingAddSheet = false
     @State private var medicationToEdit: Medication?
@@ -33,7 +34,7 @@ public struct MedicationListView: View {
                             medicationRow(med)
                         }
                     } header: {
-                        Text("Active Medications (\(activeMeds.count))")
+                        Text(String(format: loc("active_medications"), activeMeds.count))
                     }
                 }
                 
@@ -43,7 +44,7 @@ public struct MedicationListView: View {
                             medicationRow(med)
                         }
                     } header: {
-                        Text("Paused / Finished (\(pausedMeds.count))")
+                        Text(String(format: loc("paused_medications"), pausedMeds.count))
                     }
                 }
                 
@@ -52,9 +53,9 @@ public struct MedicationListView: View {
                         Image(systemName: "pills.circle")
                             .font(.system(size: 44))
                             .foregroundColor(.secondary)
-                        Text(searchText.isEmpty ? "No medications added" : "No matching medications")
+                        Text(searchText.isEmpty ? loc("no_meds_added") : loc("no_search_results"))
                             .font(.headline)
-                        Text(searchText.isEmpty ? "Tap the + button to add your first medicine." : "Try searching for a different name.")
+                        Text(searchText.isEmpty ? loc("no_meds_hint") : loc("no_search_hint"))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -62,9 +63,9 @@ public struct MedicationListView: View {
                     .padding(.vertical, 30)
                 }
             }
-            .searchable(text: $searchText, prompt: "Search medications")
+            .searchable(text: $searchText, prompt: loc("search_medications"))
             .listStyle(.insetGrouped)
-            .navigationTitle("Medications")
+            .navigationTitle(loc("medications_title"))
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -109,7 +110,7 @@ public struct MedicationListView: View {
                     }
                     
                     HStack(spacing: 6) {
-                        Text(med.frequency.rawValue)
+                        Text(med.frequency.localizedTitle)
                         Text("•")
                         Text(med.doseTimes.map { $0.formattedTime }.joined(separator: ", "))
                     }
@@ -121,7 +122,7 @@ public struct MedicationListView: View {
                 
                 // Stock pill badge
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(Int(med.currentStock)) left")
+                    Text(String(format: loc("pills_left_badge"), Int(med.currentStock)))
                         .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundColor(med.currentStock <= med.refillThreshold ? .orange : .secondary)
@@ -137,13 +138,13 @@ public struct MedicationListView: View {
             Button(role: .destructive) {
                 storage.deleteMedication(id: med.id)
             } label: {
-                Label("Delete", systemImage: "trash")
+                Label(loc("delete"), systemImage: "trash")
             }
             
             Button {
                 storage.toggleActive(id: med.id)
             } label: {
-                Label(med.isActive ? "Pause" : "Resume", systemImage: med.isActive ? "pause.circle" : "play.circle")
+                Label(med.isActive ? loc("pause") : loc("resume"), systemImage: med.isActive ? "pause.circle" : "play.circle")
             }
             .tint(med.isActive ? .orange : .green)
         }

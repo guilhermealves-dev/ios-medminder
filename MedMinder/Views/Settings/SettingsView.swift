@@ -3,25 +3,38 @@ import UserNotifications
 
 public struct SettingsView: View {
     @ObservedObject var storage = StorageService.shared
+    @ObservedObject var language = LanguageManager.shared
     @State private var notificationsAuthorized = false
     @State private var showingTestNotificationAlert = false
-    @State private var showingResetConfirmation = false
+    @State private var showingClearConfirmation = false
     
     public var body: some View {
         NavigationView {
             List {
+                // Section 0: Language Selector
+                Section {
+                    Picker(loc("app_language"), selection: $language.currentLanguage) {
+                        ForEach(AppLanguage.allCases) { lang in
+                            Text(lang.displayName).tag(lang)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                } header: {
+                    Text(loc("language_section"))
+                }
+                
                 // Section 1: Notifications
                 Section {
                     HStack {
-                        Label("Notification Reminders", systemImage: "bell.badge.fill")
+                        Label(loc("notification_reminders"), systemImage: "bell.badge.fill")
                             .foregroundColor(.accentColor)
                         Spacer()
                         if notificationsAuthorized {
-                            Text("Enabled")
+                            Text(loc("status_enabled"))
                                 .foregroundColor(.green)
                                 .font(.subheadline)
                         } else {
-                            Button("Enable") {
+                            Button(loc("action_enable")) {
                                 requestNotificationPermission()
                             }
                             .font(.subheadline)
@@ -32,85 +45,85 @@ public struct SettingsView: View {
                     Button {
                         sendTestNotification()
                     } label: {
-                        Label("Send Test Reminder (5 sec)", systemImage: "timer")
+                        Label(loc("send_test_reminder"), systemImage: "timer")
                     }
                 } header: {
-                    Text("Reminders")
+                    Text(loc("reminders_section"))
                 } footer: {
-                    Text("MedMinder uses local iOS notifications to alert you when it's time for each dose.")
+                    Text(loc("reminders_footer"))
                 }
                 
                 // Section 2: App Preferences
                 Section {
                     HStack {
-                        Label("Snooze Duration", systemImage: "clock")
+                        Label(loc("snooze_duration"), systemImage: "clock")
                         Spacer()
-                        Text("15 minutes")
+                        Text(loc("snooze_time_val"))
                             .foregroundColor(.secondary)
                     }
                     
                     HStack {
-                        Label("Refill Alert Buffer", systemImage: "shippingbox.fill")
+                        Label(loc("refill_buffer"), systemImage: "shippingbox.fill")
                         Spacer()
-                        Text("5 doses remaining")
+                        Text(loc("refill_buffer_val"))
                             .foregroundColor(.secondary)
                     }
                 } header: {
-                    Text("Preferences")
+                    Text(loc("preferences_section"))
                 }
                 
                 // Section 3: Data Management
                 Section {
                     Button(role: .destructive) {
-                        showingResetConfirmation = true
+                        showingClearConfirmation = true
                     } label: {
-                        Label("Reset to Sample Data", systemImage: "arrow.counterclockwise")
+                        Label(loc("clear_all_data"), systemImage: "trash")
                     }
                 } header: {
-                    Text("Data")
+                    Text(loc("data_section"))
                 }
                 
                 // Section 4: About
                 Section {
                     HStack {
-                        Label("App Name", systemImage: "info.circle")
+                        Label(loc("app_name_label"), systemImage: "info.circle")
                         Spacer()
                         Text("MedMinder")
                             .foregroundColor(.secondary)
                     }
                     HStack {
-                        Label("Version", systemImage: "number")
+                        Label(loc("version_label"), systemImage: "number")
                         Spacer()
-                        Text("1.0.0")
+                        Text("1.0.1")
                             .foregroundColor(.secondary)
                     }
                     HStack {
-                        Label("Platform", systemImage: "applelogo")
+                        Label(loc("platform_label"), systemImage: "applelogo")
                         Spacer()
                         Text("iOS 16.0+")
                             .foregroundColor(.secondary)
                     }
                 } header: {
-                    Text("About")
+                    Text(loc("about_section"))
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Settings")
+            .navigationTitle(loc("settings_title"))
             .onAppear {
                 checkNotificationStatus()
             }
-            .alert("Test Notification Scheduled", isPresented: $showingTestNotificationAlert) {
-                Button("OK", role: .cancel) {}
+            .alert(loc("test_notification_scheduled"), isPresented: $showingTestNotificationAlert) {
+                Button(loc("ok"), role: .cancel) {}
             } message: {
-                Text("Lock your device or switch apps to see the MedMinder reminder notification in 5 seconds.")
+                Text(loc("test_notification_msg"))
             }
-            .alert("Reset Data?", isPresented: $showingResetConfirmation) {
-                Button("Cancel", role: .cancel) {}
-                Button("Reset", role: .destructive) {
-                    resetData()
+            .alert(loc("clear_all_confirm_title"), isPresented: $showingClearConfirmation) {
+                Button(loc("cancel"), role: .cancel) {}
+                Button(loc("clear_button"), role: .destructive) {
+                    storage.clearAllData()
                 }
             } message: {
-                Text("This will restore the sample medications and clear your custom logs.")
+                Text(loc("clear_all_confirm_msg"))
             }
         }
     }
@@ -130,9 +143,10 @@ public struct SettingsView: View {
     }
     
     private func sendTestNotification() {
+        let isPt = language.currentLanguage == .ptBR
         let content = UNMutableNotificationContent()
-        content.title = "Time for your Vitamin D3"
-        content.body = "2000 IU • With meal"
+        content.title = isPt ? "Hora do seu Medicamento" : "Time for your Medication"
+        content.body = isPt ? "1 comprimido • Com a refeição" : "1 pill • With meal"
         content.sound = .default
         content.categoryIdentifier = NotificationManager.categoryId
         
@@ -143,12 +157,5 @@ public struct SettingsView: View {
                 self.showingTestNotificationAlert = true
             }
         }
-    }
-    
-    private func resetData() {
-        storage.medications = []
-        storage.doseLogs = []
-        storage.saveData()
-        storage.loadData()
     }
 }

@@ -51,7 +51,7 @@ public struct PillCardView: View {
                     
                     HStack(spacing: 3) {
                         Image(systemName: item.medication.instruction.icon)
-                        Text(item.medication.instruction.rawValue)
+                        Text(item.medication.instruction.localizedTitle)
                     }
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -66,7 +66,7 @@ public struct PillCardView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
-                    Text("Taken")
+                    Text(item.status.localizedTitle)
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.green)
@@ -80,7 +80,7 @@ public struct PillCardView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.secondary)
-                    Text("Skipped")
+                    Text(item.status.localizedTitle)
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
@@ -94,7 +94,7 @@ public struct PillCardView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "clock.arrow.circlepath")
                         .foregroundColor(.orange)
-                    Text("Snoozed")
+                    Text(item.status.localizedTitle)
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.orange)

@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct HistoryView: View {
     @ObservedObject var storage = StorageService.shared
+    @ObservedObject var language = LanguageManager.shared
     
     private var adherence7Days: Double {
         storage.adherenceRate(days: 7)
@@ -27,7 +28,7 @@ public struct HistoryView: View {
                                 Text("\(Int(adherence7Days * 100))%")
                                     .font(.system(size: 32, weight: .bold, design: .rounded))
                                     .foregroundColor(.accentColor)
-                                Text("7-Day Adherence")
+                                Text(loc("adherence_7_days"))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -41,7 +42,7 @@ public struct HistoryView: View {
                                 Text("\(Int(adherence30Days * 100))%")
                                     .font(.system(size: 32, weight: .bold, design: .rounded))
                                     .foregroundColor(Color(red: 0.18, green: 0.80, blue: 0.44))
-                                Text("30-Day Adherence")
+                                Text(loc("adherence_30_days"))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -58,10 +59,10 @@ public struct HistoryView: View {
                                 .foregroundColor(.orange)
                             
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Great consistency!")
+                                Text(loc("consistency_title"))
                                     .font(.subheadline)
                                     .fontWeight(.bold)
-                                Text("Keep taking your meds on time to stay healthy.")
+                                Text(loc("consistency_msg"))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -73,13 +74,13 @@ public struct HistoryView: View {
                     }
                     .padding(.vertical, 6)
                 } header: {
-                    Text("Health Adherence Overview")
+                    Text(loc("adherence_overview"))
                 }
                 
                 // Section 2: Recent Activity Logs
                 Section {
                     if sortedLogs.isEmpty {
-                        Text("No recorded doses yet. Take doses in the Today tab to build your log history.")
+                        Text(loc("no_logs_msg"))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.vertical, 8)
@@ -94,7 +95,7 @@ public struct HistoryView: View {
                                 )
                                 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(med?.name ?? "Medication")
+                                    Text(med?.name ?? loc("medications_title"))
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                     
@@ -111,11 +112,11 @@ public struct HistoryView: View {
                         }
                     }
                 } header: {
-                    Text("Dose Activity Log")
+                    Text(loc("dose_activity_log"))
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Progress")
+            .navigationTitle(loc("progress_title"))
         }
     }
     
@@ -124,17 +125,17 @@ public struct HistoryView: View {
             switch status {
             case .taken:
                 Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                Text("Taken").font(.caption).foregroundColor(.green).fontWeight(.semibold)
             case .skipped:
                 Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
-                Text("Skipped").font(.caption).foregroundColor(.secondary).fontWeight(.semibold)
             case .snoozed:
                 Image(systemName: "clock.arrow.circlepath").foregroundColor(.orange)
-                Text("Snoozed").font(.caption).foregroundColor(.orange).fontWeight(.semibold)
             case .pending:
                 Image(systemName: "circle").foregroundColor(.blue)
-                Text("Pending").font(.caption).foregroundColor(.blue).fontWeight(.semibold)
             }
+            Text(status.localizedTitle)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(statusColor(status))
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -142,8 +143,18 @@ public struct HistoryView: View {
         .cornerRadius(8)
     }
     
+    private func statusColor(_ status: DoseStatus) -> Color {
+        switch status {
+        case .taken: return .green
+        case .skipped: return .secondary
+        case .snoozed: return .orange
+        case .pending: return .blue
+        }
+    }
+    
     private func formattedLogDate(_ date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.locale = language.currentLanguage == .ptBR ? Locale(identifier: "pt_BR") : Locale(identifier: "en_US")
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)

@@ -14,6 +14,19 @@ public enum MedicationForm: String, CaseIterable, Codable, Identifiable {
     
     public var id: String { rawValue }
     
+    public var localizedTitle: String {
+        switch self {
+        case .capsule: return loc("form_capsule")
+        case .tablet: return loc("form_tablet")
+        case .liquid: return loc("form_liquid")
+        case .drops: return loc("form_drops")
+        case .injection: return loc("form_injection")
+        case .inhaler: return loc("form_inhaler")
+        case .patch: return loc("form_patch")
+        case .spray: return loc("form_spray")
+        }
+    }
+    
     public var systemIcon: String {
         switch self {
         case .capsule: return "pill.fill"
@@ -37,6 +50,15 @@ public enum MealInstruction: String, CaseIterable, Codable, Identifiable {
     
     public var id: String { rawValue }
     
+    public var localizedTitle: String {
+        switch self {
+        case .anytime: return loc("meal_anytime")
+        case .beforeMeal: return loc("meal_before")
+        case .withMeal: return loc("meal_with")
+        case .afterMeal: return loc("meal_after")
+        }
+    }
+    
     public var icon: String {
         switch self {
         case .anytime: return "clock"
@@ -55,6 +77,15 @@ public enum FrequencyType: String, CaseIterable, Codable, Identifiable {
     case asNeeded = "As needed (PRN)"
     
     public var id: String { rawValue }
+    
+    public var localizedTitle: String {
+        switch self {
+        case .everyday: return loc("freq_everyday")
+        case .specificDays: return loc("freq_specific_days")
+        case .everyXHours: return loc("freq_every_x_hours")
+        case .asNeeded: return loc("freq_as_needed")
+        }
+    }
 }
 
 // MARK: - Pill Color Preset
@@ -68,6 +99,18 @@ public enum PillThemeColor: String, CaseIterable, Codable, Identifiable {
     case pink = "Bubblegum Pink"
     
     public var id: String { rawValue }
+    
+    public var localizedTitle: String {
+        switch self {
+        case .sapphire: return loc("color_sapphire")
+        case .coral: return loc("color_coral")
+        case .emerald: return loc("color_emerald")
+        case .amber: return loc("color_amber")
+        case .violet: return loc("color_violet")
+        case .teal: return loc("color_teal")
+        case .pink: return loc("color_pink")
+        }
+    }
     
     public var color: Color {
         switch self {
@@ -113,14 +156,14 @@ public struct DoseTime: Codable, Identifiable, Hashable {
 public struct Medication: Codable, Identifiable {
     public var id: UUID
     public var name: String
-    public var strength: String // e.g. "500 mg", "10 ml"
+    public var strength: String
     public var form: MedicationForm
     public var themeColor: PillThemeColor
     public var instruction: MealInstruction
     public var frequency: FrequencyType
-    public var selectedDays: Set<Int> // 1 = Sunday, 2 = Monday, ... 7 = Saturday
+    public var selectedDays: Set<Int>
     public var doseTimes: [DoseTime]
-    public var intervalHours: Int? // For every X hours
+    public var intervalHours: Int?
     
     // Inventory / Refill
     public var currentStock: Double

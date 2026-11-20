@@ -7,6 +7,15 @@ public enum DoseStatus: String, CaseIterable, Codable {
     case taken = "Taken"
     case skipped = "Skipped"
     case snoozed = "Snoozed"
+    
+    public var localizedTitle: String {
+        switch self {
+        case .pending: return loc("status_pending")
+        case .taken: return loc("status_taken")
+        case .skipped: return loc("status_skipped")
+        case .snoozed: return loc("status_snoozed")
+        }
+    }
 }
 
 // MARK: - Day Period for Grouping
@@ -17,6 +26,15 @@ public enum DayPeriod: String, CaseIterable, Identifiable {
     case night = "Night"
     
     public var id: String { rawValue }
+    
+    public var localizedTitle: String {
+        switch self {
+        case .morning: return loc("period_morning")
+        case .afternoon: return loc("period_afternoon")
+        case .evening: return loc("period_evening")
+        case .night: return loc("period_night")
+        }
+    }
     
     public var icon: String {
         switch self {
@@ -50,7 +68,7 @@ public enum DayPeriod: String, CaseIterable, Identifiable {
 public struct DoseLog: Codable, Identifiable {
     public var id: UUID
     public var medicationId: UUID
-    public var scheduledDate: Date // Normalized to day + hour + minute
+    public var scheduledDate: Date
     public var status: DoseStatus
     public var actualTime: Date?
     public var doseAmount: Double
@@ -75,7 +93,7 @@ public struct DoseLog: Codable, Identifiable {
     }
 }
 
-// MARK: - Resolved Daily Dose Item (ViewModel helper)
+// MARK: - Resolved Daily Dose Item
 public struct DailyDoseItem: Identifiable {
     public var id: String { "\(medication.id.uuidString)-\(scheduledDate.timeIntervalSince1970)" }
     public let medication: Medication

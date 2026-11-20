@@ -23,22 +23,24 @@ public final class NotificationManager {
         }
     }
     
-    private func setupNotificationCategories() {
+    public func setupNotificationCategories() {
+        let isPt = LanguageManager.shared.currentLanguage == .ptBR
+        
         let takeAction = UNNotificationAction(
             identifier: Self.actionTakeId,
-            title: "Take Now",
+            title: isPt ? "Tomar Agora" : "Take Now",
             options: [.foreground]
         )
         
         let snoozeAction = UNNotificationAction(
             identifier: Self.actionSnoozeId,
-            title: "Snooze (15m)",
+            title: isPt ? "Adiar (15m)" : "Snooze (15m)",
             options: []
         )
         
         let skipAction = UNNotificationAction(
             identifier: Self.actionSkipId,
-            title: "Skip",
+            title: isPt ? "Pular" : "Skip",
             options: [.destructive]
         )
         
@@ -55,6 +57,7 @@ public final class NotificationManager {
     public func scheduleReminders(for medication: Medication) {
         guard medication.isActive else { return }
         
+        let isPt = LanguageManager.shared.currentLanguage == .ptBR
         let center = UNUserNotificationCenter.current()
         
         // Remove existing reminders for this medication
@@ -62,8 +65,8 @@ public final class NotificationManager {
         
         for dose in medication.doseTimes {
             let content = UNMutableNotificationContent()
-            content.title = "Time for your \(medication.name)"
-            content.body = "\(medication.strength) • \(medication.instruction.rawValue)"
+            content.title = isPt ? "Hora de tomar \(medication.name)" : "Time for your \(medication.name)"
+            content.body = "\(medication.strength) • \(medication.instruction.localizedTitle)"
             content.sound = .default
             content.categoryIdentifier = Self.categoryId
             content.userInfo = [
@@ -100,9 +103,10 @@ public final class NotificationManager {
     public func scheduleRefillAlert(for medication: Medication) {
         guard medication.refillAlertEnabled, medication.currentStock <= medication.refillThreshold else { return }
         
+        let isPt = LanguageManager.shared.currentLanguage == .ptBR
         let content = UNMutableNotificationContent()
-        content.title = "Refill Reminder: \(medication.name)"
-        content.body = "You only have \(Int(medication.currentStock)) doses remaining. Time to restock!"
+        content.title = isPt ? "Aviso de Reposição: \(medication.name)" : "Refill Reminder: \(medication.name)"
+        content.body = isPt ? "Restam apenas \(Int(medication.currentStock)) doses. Hora de repor o estoque!" : "You only have \(Int(medication.currentStock)) doses remaining. Time to restock!"
         content.sound = .default
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
