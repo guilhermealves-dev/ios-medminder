@@ -1,6 +1,6 @@
 # MedMinder 💊🧠
 
-> Smart, intuitive medication reminder and pill tracker app for iOS inspired by Medisafe. Built with SwiftUI, XcodeGen, and automated CI/CD via GitHub Actions.
+> Smart, intuitive medication reminder and pill tracker app for iOS. Built natively with SwiftUI, XcodeGen, and automated CI/CD via GitHub Actions.
 
 ![MedMinder Icon](MedMinder/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png)
 

@@ -9,7 +9,7 @@ public enum DoseStatus: String, CaseIterable, Codable {
     case snoozed = "Snoozed"
 }
 
-// MARK: - Day Period for Grouping (like Medisafe)
+// MARK: - Day Period for Grouping
 public enum DayPeriod: String, CaseIterable, Identifiable {
     case morning = "Morning"
     case afternoon = "Afternoon"
