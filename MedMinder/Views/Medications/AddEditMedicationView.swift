@@ -19,6 +19,7 @@ public struct AddEditMedicationView: View {
     @State private var refillThreshold: String = "5"
     @State private var refillAlertEnabled: Bool = true
     @State private var notes: String = ""
+    @State private var alertSound: AlertSound = .default
     
     @State private var showingTimePicker = false
     @State private var newDoseDate = Date()
@@ -232,6 +233,29 @@ public struct AddEditMedicationView: View {
                     Text(loc("inventory_header"))
                 }
                 
+                // Section 5.5: Notification Sound
+                Section {
+                    HStack {
+                        Picker(loc("alert_sound"), selection: $alertSound) {
+                            ForEach(AlertSound.allCases) { sound in
+                                Text(sound.localizedTitle).tag(sound)
+                            }
+                        }
+                        
+                        Button {
+                            SoundPreviewPlayer.shared.play(alertSound)
+                        } label: {
+                            Image(systemName: "speaker.wave.2.fill")
+                                .font(.subheadline)
+                                .foregroundColor(.accentColor)
+                                .padding(4)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text(loc("sound_section"))
+                }
+                
                 // Section 6: Notes
                 Section {
                     TextField(loc("notes_placeholder"), text: $notes)
@@ -314,6 +338,7 @@ public struct AddEditMedicationView: View {
         refillThreshold = "\(Int(med.refillThreshold))"
         refillAlertEnabled = med.refillAlertEnabled
         notes = med.notes
+        alertSound = med.alertSound
     }
     
     private func saveMedication() {
@@ -335,7 +360,8 @@ public struct AddEditMedicationView: View {
             refillAlertEnabled: refillAlertEnabled,
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
             isActive: editingMedication?.isActive ?? true,
-            createdAt: editingMedication?.createdAt ?? Date()
+            createdAt: editingMedication?.createdAt ?? Date(),
+            alertSound: alertSound
         )
         
         if editingMedication != nil {

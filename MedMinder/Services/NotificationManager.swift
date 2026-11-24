@@ -74,11 +74,16 @@ public final class NotificationManager {
         // As-needed (SOS) medications don't have scheduled recurring alarms
         guard medication.frequency != .asNeeded else { return }
         
+        // Resolve sound: specific medication sound, or global sound from Settings
+        let globalSoundRaw = UserDefaults.standard.string(forKey: "selected_global_sound") ?? "default"
+        let globalSound = AlertSound(rawValue: globalSoundRaw) ?? .default
+        let effectiveSound = (medication.alertSound != .default) ? medication.alertSound : globalSound
+        
         for dose in medication.doseTimes {
             let content = UNMutableNotificationContent()
             content.title = isPt ? "Hora de tomar \(medication.name)" : "Time for your \(medication.name)"
             content.body = "\(medication.strength) • \(medication.instruction.localizedTitle)"
-            content.sound = .default
+            content.sound = effectiveSound.notificationSound
             content.categoryIdentifier = Self.categoryId
             content.userInfo = [
                 "medicationId": medication.id.uuidString,

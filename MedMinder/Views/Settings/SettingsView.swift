@@ -7,6 +7,7 @@ public struct SettingsView: View {
     @State private var notificationsAuthorized = false
     @State private var showingTestNotificationAlert = false
     @State private var showingClearConfirmation = false
+    @AppStorage("selected_global_sound") private var selectedGlobalSound: String = "default"
     
     public var body: some View {
         NavigationView {
@@ -53,7 +54,45 @@ public struct SettingsView: View {
                     Text(loc("reminders_footer"))
                 }
                 
-                // Section 2: App Preferences
+                // Section 2: Alert Sounds
+                Section {
+                    ForEach(AlertSound.allCases) { sound in
+                        HStack {
+                            Text(sound.localizedTitle)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Button {
+                                SoundPreviewPlayer.shared.play(sound)
+                            } label: {
+                                Image(systemName: "speaker.wave.2.fill")
+                                    .font(.subheadline)
+                                    .foregroundColor(.accentColor)
+                                    .padding(6)
+                                    .background(Color.accentColor.opacity(0.12))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                            
+                            if selectedGlobalSound == sound.rawValue {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
+                                    .fontWeight(.bold)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedGlobalSound = sound.rawValue
+                            SoundPreviewPlayer.shared.play(sound)
+                            NotificationManager.shared.rescheduleAllReminders(for: storage.medications)
+                        }
+                    }
+                } header: {
+                    Text(loc("sound_section"))
+                }
+                
+                // Section 3: App Preferences
                 Section {
                     HStack {
                         Label(loc("snooze_duration"), systemImage: "clock")
@@ -72,7 +111,7 @@ public struct SettingsView: View {
                     Text(loc("preferences_section"))
                 }
                 
-                // Section 3: Data Management
+                // Section 4: Data Management
                 Section {
                     Button(role: .destructive) {
                         showingClearConfirmation = true
@@ -83,7 +122,7 @@ public struct SettingsView: View {
                     Text(loc("data_section"))
                 }
                 
-                // Section 4: About
+                // Section 5: About
                 Section {
                     HStack {
                         Label(loc("app_name_label"), systemImage: "info.circle")
@@ -94,7 +133,7 @@ public struct SettingsView: View {
                     HStack {
                         Label(loc("version_label"), systemImage: "number")
                         Spacer()
-                        Text("1.0.2")
+                        Text("1.0.3")
                             .foregroundColor(.secondary)
                     }
                     HStack {
@@ -147,7 +186,9 @@ public struct SettingsView: View {
         let content = UNMutableNotificationContent()
         content.title = isPt ? "Hora do seu Medicamento" : "Time for your Medication"
         content.body = isPt ? "1 comprimido • Com a refeição" : "1 pill • With meal"
-        content.sound = .default
+        
+        let globalSound = AlertSound(rawValue: selectedGlobalSound) ?? .default
+        content.sound = globalSound.notificationSound
         content.categoryIdentifier = NotificationManager.categoryId
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)

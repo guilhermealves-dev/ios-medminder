@@ -101,6 +101,17 @@ public final class LanguageManager: ObservableObject {
         case "freq_every_x_hours": return isPt ? "A cada X horas" : "Every X hours"
         case "freq_as_needed": return isPt ? "Conforme necessário (SOS)" : "As needed (PRN)"
             
+        // MARK: Sounds
+        case "sound_section": return isPt ? "Som das Notificações" : "Notification Sound"
+        case "alert_sound": return isPt ? "Toque do Alarme" : "Alert Tone"
+        case "sound_default": return isPt ? "Padrão do iOS" : "iOS Default"
+        case "sound_chime": return isPt ? "Sino Melódico" : "Melodic Chime"
+        case "sound_marimba": return isPt ? "Marimba Calma" : "Calm Marimba"
+        case "sound_crystal": return isPt ? "Cristal Brilhante" : "Bright Crystal"
+        case "sound_pulse": return isPt ? "Pulso Moderno" : "Modern Pulse"
+        case "sound_zen": return isPt ? "Sino Zen" : "Zen Bell"
+        case "preview_sound": return isPt ? "Ouvir som" : "Play sound"
+            
         // MARK: Colors
         case "color_sapphire": return isPt ? "Azul Safira" : "Sapphire Blue"
         case "color_coral": return isPt ? "Vermelho Coral" : "Coral Red"

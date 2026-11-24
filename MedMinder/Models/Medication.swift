@@ -173,6 +173,34 @@ public struct Medication: Codable, Identifiable {
     public var notes: String
     public var isActive: Bool
     public var createdAt: Date
+    public var alertSound: AlertSound
+    
+    enum CodingKeys: String, CodingKey {
+        case id, name, strength, form, themeColor, instruction, frequency
+        case selectedDays, doseTimes, intervalHours, currentStock, refillThreshold
+        case refillAlertEnabled, notes, isActive, createdAt, alertSound
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.strength = try container.decode(String.self, forKey: .strength)
+        self.form = try container.decode(MedicationForm.self, forKey: .form)
+        self.themeColor = try container.decode(PillThemeColor.self, forKey: .themeColor)
+        self.instruction = try container.decode(MealInstruction.self, forKey: .instruction)
+        self.frequency = try container.decode(FrequencyType.self, forKey: .frequency)
+        self.selectedDays = try container.decode(Set<Int>.self, forKey: .selectedDays)
+        self.doseTimes = try container.decode([DoseTime].self, forKey: .doseTimes)
+        self.intervalHours = try container.decodeIfPresent(Int.self, forKey: .intervalHours)
+        self.currentStock = try container.decode(Double.self, forKey: .currentStock)
+        self.refillThreshold = try container.decode(Double.self, forKey: .refillThreshold)
+        self.refillAlertEnabled = try container.decode(Bool.self, forKey: .refillAlertEnabled)
+        self.notes = try container.decode(String.self, forKey: .notes)
+        self.isActive = try container.decode(Bool.self, forKey: .isActive)
+        self.createdAt = try container.decode(Date.self, forKey: .createdAt)
+        self.alertSound = try container.decodeIfPresent(AlertSound.self, forKey: .alertSound) ?? .default
+    }
     
     public init(
         id: UUID = UUID(),
@@ -190,7 +218,8 @@ public struct Medication: Codable, Identifiable {
         refillAlertEnabled: Bool = true,
         notes: String = "",
         isActive: Bool = true,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        alertSound: AlertSound = .default
     ) {
         self.id = id
         self.name = name
@@ -208,5 +237,6 @@ public struct Medication: Codable, Identifiable {
         self.notes = notes
         self.isActive = isActive
         self.createdAt = createdAt
+        self.alertSound = alertSound
     }
 }
