@@ -8,6 +8,8 @@ public struct SettingsView: View {
     @State private var showingTestNotificationAlert = false
     @State private var showingClearConfirmation = false
     @AppStorage("selected_global_sound") private var selectedGlobalSound: String = "default"
+    @AppStorage("persistent_reminders_enabled") private var persistentRemindersEnabled: Bool = true
+    @AppStorage("persistent_reminders_count") private var persistentRemindersCount: Int = 4
     
     public var body: some View {
         NavigationView {
@@ -94,6 +96,28 @@ public struct SettingsView: View {
                 
                 // Section 3: App Preferences
                 Section {
+                    Toggle(loc("persistent_reminders"), isOn: $persistentRemindersEnabled)
+                        .onChange(of: persistentRemindersEnabled) { _ in
+                            NotificationManager.shared.rescheduleAllReminders(for: storage.medications)
+                        }
+                    
+                    if persistentRemindersEnabled {
+                        Stepper(
+                            value: $persistentRemindersCount,
+                            in: 1...6
+                        ) {
+                            HStack {
+                                Text(loc("persistent_count_label"))
+                                Spacer()
+                                Text(String(format: loc("repeats_format"), persistentRemindersCount, persistentRemindersCount * 10))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .onChange(of: persistentRemindersCount) { _ in
+                            NotificationManager.shared.rescheduleAllReminders(for: storage.medications)
+                        }
+                    }
+                    
                     HStack {
                         Label(loc("snooze_duration"), systemImage: "clock")
                         Spacer()
@@ -109,6 +133,10 @@ public struct SettingsView: View {
                     }
                 } header: {
                     Text(loc("preferences_section"))
+                } footer: {
+                    if persistentRemindersEnabled {
+                        Text(loc("persistent_reminders_desc"))
+                    }
                 }
                 
                 // Section 4: Data Management
@@ -133,7 +161,7 @@ public struct SettingsView: View {
                     HStack {
                         Label(loc("version_label"), systemImage: "number")
                         Spacer()
-                        Text("1.0.4")
+                        Text("1.0.5")
                             .foregroundColor(.secondary)
                     }
                     HStack {

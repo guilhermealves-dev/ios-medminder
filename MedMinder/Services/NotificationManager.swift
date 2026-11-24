@@ -1,7 +1,7 @@
 import Foundation
 import UserNotifications
 
-public final class NotificationManager {
+public final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     public static let shared = NotificationManager()
     
     public static let categoryId = "MED_REMINDER_CATEGORY"
@@ -9,7 +9,10 @@ public final class NotificationManager {
     public static let actionSnoozeId = "ACTION_SNOOZE"
     public static let actionSkipId = "ACTION_SKIP"
     
-    private init() {}
+    private override init() {
+        super.init()
+        UNUserNotificationCenter.current().delegate = self
+    }
     
     public func requestAuthorization(completion: @escaping (Bool) -> Void) {
         let center = UNUserNotificationCenter.current()
@@ -79,56 +82,183 @@ public final class NotificationManager {
         let globalSound = AlertSound(rawValue: globalSoundRaw) ?? .default
         let effectiveSound = (medication.alertSound != .default) ? medication.alertSound : globalSound
         
+        // Check persistent reminder preferences
+        let persistentEnabled = UserDefaults.standard.object(forKey: "persistent_reminders_enabled") == nil
+            ? true
+            : UserDefaults.standard.bool(forKey: "persistent_reminders_enabled")
+        let maxFollowUps = persistentEnabled
+            ? max(1, min(6, UserDefaults.standard.integer(forKey: "persistent_reminders_count") == 0 ? 4 : UserDefaults.standard.integer(forKey: "persistent_reminders_count")))
+            : 0
+        
         for dose in medication.doseTimes {
-            let content = UNMutableNotificationContent()
-            content.title = isPt ? "Hora de tomar \(medication.name)" : "Time for your \(medication.name)"
-            content.body = "\(medication.strength) • \(medication.instruction.localizedTitle)"
-            content.sound = effectiveSound.notificationSound
-            content.categoryIdentifier = Self.categoryId
-            content.userInfo = [
-                "medicationId": medication.id.uuidString,
-                "doseTimeId": dose.id.uuidString
-            ]
-            
             switch medication.frequency {
             case .specificDays:
                 // Schedule recurring alarms ONLY on the selected days of the week
                 for day in medication.selectedDays {
-                    var dateComponents = DateComponents()
-                    dateComponents.weekday = day
-                    dateComponents.hour = dose.hour
-                    dateComponents.minute = dose.minute
+                    // 1. Main Alarm at exact dose time
+                    scheduleDoseNotification(
+                        medication: medication,
+                        dose: dose,
+                        weekday: day,
+                        hour: dose.hour,
+                        minute: dose.minute,
+                        sound: effectiveSound,
+                        step: 0,
+                        isPt: isPt,
+                        center: center
+                    )
                     
-                    let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-                    let identifier = "med-\(medication.id.uuidString)-\(dose.id.uuidString)-day-\(day)"
-                    let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-                    
-                    center.add(request) { error in
-                        if let error = error {
-                            print("Error scheduling reminder for day \(day): \(error.localizedDescription)")
+                    // 2. Follow-up Nag Reminders (every 10 minutes)
+                    if maxFollowUps > 0 {
+                        for step in 1...maxFollowUps {
+                            let totalMinutes = dose.hour * 60 + dose.minute + (step * 10)
+                            let nagHour = (totalMinutes / 60) % 24
+                            let nagMinute = totalMinutes % 60
+                            
+                            scheduleDoseNotification(
+                                medication: medication,
+                                dose: dose,
+                                weekday: day,
+                                hour: nagHour,
+                                minute: nagMinute,
+                                sound: effectiveSound,
+                                step: step,
+                                isPt: isPt,
+                                center: center
+                            )
                         }
                     }
                 }
                 
             case .everyday, .everyXHours:
-                // Daily repeating alarm
-                var dateComponents = DateComponents()
-                dateComponents.hour = dose.hour
-                dateComponents.minute = dose.minute
+                // 1. Main Daily Alarm
+                scheduleDoseNotification(
+                    medication: medication,
+                    dose: dose,
+                    weekday: nil,
+                    hour: dose.hour,
+                    minute: dose.minute,
+                    sound: effectiveSound,
+                    step: 0,
+                    isPt: isPt,
+                    center: center
+                )
                 
-                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-                let identifier = "med-\(medication.id.uuidString)-\(dose.id.uuidString)"
-                let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-                
-                center.add(request) { error in
-                    if let error = error {
-                        print("Error scheduling daily reminder: \(error.localizedDescription)")
+                // 2. Follow-up Nag Reminders (every 10 minutes)
+                if maxFollowUps > 0 {
+                    for step in 1...maxFollowUps {
+                        let totalMinutes = dose.hour * 60 + dose.minute + (step * 10)
+                        let nagHour = (totalMinutes / 60) % 24
+                        let nagMinute = totalMinutes % 60
+                        
+                        scheduleDoseNotification(
+                            medication: medication,
+                            dose: dose,
+                            weekday: nil,
+                            hour: nagHour,
+                            minute: nagMinute,
+                            sound: effectiveSound,
+                            step: step,
+                            isPt: isPt,
+                            center: center
+                        )
                     }
                 }
                 
             case .asNeeded:
                 break
             }
+        }
+    }
+    
+    private func scheduleDoseNotification(
+        medication: Medication,
+        dose: DoseTime,
+        weekday: Int?,
+        hour: Int,
+        minute: Int,
+        sound: AlertSound,
+        step: Int,
+        isPt: Bool,
+        center: UNUserNotificationCenter
+    ) {
+        let content = UNMutableNotificationContent()
+        
+        if step == 0 {
+            content.title = isPt ? "Hora de tomar \(medication.name)" : "Time for your \(medication.name)"
+            content.body = "\(medication.strength) • \(medication.instruction.localizedTitle)"
+        } else {
+            let elapsedMinutes = step * 10
+            if isPt {
+                content.title = "Lembrete (\(elapsedMinutes) min): \(medication.name)"
+                content.body = "Você ainda não confirmou sua dose das \(dose.formattedTime). Não esqueça de tomar!"
+            } else {
+                content.title = "Reminder (\(elapsedMinutes)m): \(medication.name)"
+                content.body = "You haven't confirmed your dose at \(dose.formattedTime) yet. Don't forget!"
+            }
+        }
+        
+        content.sound = sound.notificationSound
+        content.categoryIdentifier = Self.categoryId
+        content.userInfo = [
+            "medicationId": medication.id.uuidString,
+            "doseTimeId": dose.id.uuidString,
+            "step": step
+        ]
+        
+        var dateComponents = DateComponents()
+        if let weekday = weekday {
+            dateComponents.weekday = weekday
+        }
+        dateComponents.hour = hour
+        dateComponents.minute = minute
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        
+        let daySuffix = weekday != nil ? "-day-\(weekday!)" : ""
+        let stepSuffix = step > 0 ? "-nag-\(step)" : ""
+        let identifier = "med-\(medication.id.uuidString)-\(dose.id.uuidString)\(stepSuffix)\(daySuffix)"
+        
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        center.add(request) { error in
+            if let error = error {
+                print("Error scheduling reminder: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    public func cancelNagReminders(for medicationId: UUID, doseTimeId: UUID? = nil) {
+        let center = UNUserNotificationCenter.current()
+        
+        // 1. Remove delivered notifications from Notification Center / lock screen
+        center.getDeliveredNotifications { notifications in
+            let deliveredIds = notifications
+                .filter { notif in
+                    let id = notif.request.identifier
+                    if let doseId = doseTimeId {
+                        return id.contains(medicationId.uuidString) && id.contains(doseId.uuidString)
+                    }
+                    return id.contains(medicationId.uuidString)
+                }
+                .map { $0.request.identifier }
+            center.removeDeliveredNotifications(withIdentifiers: deliveredIds)
+        }
+        
+        // 2. Remove pending nag notifications for today
+        center.getPendingNotificationRequests { requests in
+            let nagIds = requests
+                .filter { req in
+                    let id = req.identifier
+                    if id.contains("-nag-") {
+                        if let doseId = doseTimeId {
+                            return id.contains(medicationId.uuidString) && id.contains(doseId.uuidString)
+                        }
+                        return id.contains(medicationId.uuidString)
+                    }
+                    return false
+                }
+                .map { $0.identifier }
+            center.removePendingNotificationRequests(withIdentifiers: nagIds)
         }
     }
     
@@ -139,6 +269,12 @@ public final class NotificationManager {
                 .filter { $0.identifier.contains(medicationId.uuidString) }
                 .map { $0.identifier }
             center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        }
+        center.getDeliveredNotifications { notifications in
+            let identifiers = notifications
+                .filter { $0.request.identifier.contains(medicationId.uuidString) }
+                .map { $0.request.identifier }
+            center.removeDeliveredNotifications(withIdentifiers: identifiers)
         }
     }
     
@@ -158,5 +294,59 @@ public final class NotificationManager {
             trigger: trigger
         )
         UNUserNotificationCenter.current().add(request)
+    }
+    
+    // MARK: - UNUserNotificationCenterDelegate
+    
+    // Display banner and play sound even when app is active in foreground
+    public func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound, .badge])
+    }
+    
+    // Handle notification action buttons (Take, Snooze, Skip) from lock screen
+    public func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let userInfo = response.notification.request.content.userInfo
+        guard let medIdStr = userInfo["medicationId"] as? String,
+              let medId = UUID(uuidString: medIdStr) else {
+            completionHandler()
+            return
+        }
+        
+        let doseTimeIdStr = userInfo["doseTimeId"] as? String
+        let doseTimeId = doseTimeIdStr != nil ? UUID(uuidString: doseTimeIdStr!) : nil
+        
+        switch response.actionIdentifier {
+        case Self.actionTakeId:
+            Task { @MainActor in
+                StorageService.shared.recordDose(medicationId: medId, scheduledDate: Date(), status: .taken)
+                self.cancelNagReminders(for: medId, doseTimeId: doseTimeId)
+            }
+            
+        case Self.actionSkipId:
+            Task { @MainActor in
+                StorageService.shared.recordDose(medicationId: medId, scheduledDate: Date(), status: .skipped)
+                self.cancelNagReminders(for: medId, doseTimeId: doseTimeId)
+            }
+            
+        case Self.actionSnoozeId:
+            // Snooze for 15 minutes
+            let snoozeContent = response.notification.request.content.mutableCopy() as! UNMutableNotificationContent
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 15 * 60, repeats: false)
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: snoozeContent, trigger: trigger)
+            center.add(request)
+            
+        default:
+            break
+        }
+        
+        completionHandler()
     }
 }

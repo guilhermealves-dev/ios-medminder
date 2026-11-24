@@ -4,6 +4,7 @@ import SwiftUI
 struct MedMinderApp: App {
     @StateObject private var storage = StorageService.shared
     @StateObject private var language = LanguageManager.shared
+    @Environment(\.scenePhase) private var scenePhase
     
     init() {
         NotificationManager.shared.requestAuthorization { granted in
@@ -16,6 +17,11 @@ struct MedMinderApp: App {
             RootView()
                 .environmentObject(storage)
                 .environmentObject(language)
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                NotificationManager.shared.rescheduleAllReminders(for: storage.medications)
+            }
         }
     }
 }

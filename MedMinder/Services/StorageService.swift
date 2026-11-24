@@ -196,6 +196,11 @@ public final class StorageService: ObservableObject {
             }
         }
         
+        // If taken or skipped, silence persistent nag notifications immediately
+        if status == .taken || status == .skipped {
+            NotificationManager.shared.cancelNagReminders(for: medicationId)
+        }
+        
         saveData()
     }
     
