@@ -29,6 +29,9 @@ public final class StorageService: ObservableObject {
         
         // One-time cleanup of legacy demo medications if present
         cleanupLegacySampleDataIfNeeded()
+        
+        // Refresh all notification triggers to ensure correct weekday matching
+        NotificationManager.shared.rescheduleAllReminders(for: medications)
     }
     
     // MARK: - Persistence

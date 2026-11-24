@@ -54,6 +54,14 @@ public final class NotificationManager {
         UNUserNotificationCenter.current().setNotificationCategories([category])
     }
     
+    public func rescheduleAllReminders(for medications: [Medication]) {
+        let center = UNUserNotificationCenter.current()
+        center.removeAllPendingNotificationRequests()
+        for med in medications where med.isActive {
+            scheduleReminders(for: med)
+        }
+    }
+    
     public func scheduleReminders(for medication: Medication) {
         guard medication.isActive else { return }
         
@@ -62,6 +70,9 @@ public final class NotificationManager {
         
         // Remove existing reminders for this medication
         cancelReminders(for: medication.id)
+        
+        // As-needed (SOS) medications don't have scheduled recurring alarms
+        guard medication.frequency != .asNeeded else { return }
         
         for dose in medication.doseTimes {
             let content = UNMutableNotificationContent()
@@ -74,18 +85,44 @@ public final class NotificationManager {
                 "doseTimeId": dose.id.uuidString
             ]
             
-            var dateComponents = DateComponents()
-            dateComponents.hour = dose.hour
-            dateComponents.minute = dose.minute
-            
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-            let identifier = "med-\(medication.id.uuidString)-\(dose.id.uuidString)"
-            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-            
-            center.add(request) { error in
-                if let error = error {
-                    print("Error scheduling reminder: \(error.localizedDescription)")
+            switch medication.frequency {
+            case .specificDays:
+                // Schedule recurring alarms ONLY on the selected days of the week
+                for day in medication.selectedDays {
+                    var dateComponents = DateComponents()
+                    dateComponents.weekday = day
+                    dateComponents.hour = dose.hour
+                    dateComponents.minute = dose.minute
+                    
+                    let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+                    let identifier = "med-\(medication.id.uuidString)-\(dose.id.uuidString)-day-\(day)"
+                    let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+                    
+                    center.add(request) { error in
+                        if let error = error {
+                            print("Error scheduling reminder for day \(day): \(error.localizedDescription)")
+                        }
+                    }
                 }
+                
+            case .everyday, .everyXHours:
+                // Daily repeating alarm
+                var dateComponents = DateComponents()
+                dateComponents.hour = dose.hour
+                dateComponents.minute = dose.minute
+                
+                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+                let identifier = "med-\(medication.id.uuidString)-\(dose.id.uuidString)"
+                let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+                
+                center.add(request) { error in
+                    if let error = error {
+                        print("Error scheduling daily reminder: \(error.localizedDescription)")
+                    }
+                }
+                
+            case .asNeeded:
+                break
             }
         }
     }
