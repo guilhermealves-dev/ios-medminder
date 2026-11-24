@@ -133,7 +133,7 @@ public struct SettingsView: View {
                     HStack {
                         Label(loc("version_label"), systemImage: "number")
                         Spacer()
-                        Text("1.0.3")
+                        Text("1.0.4")
                             .foregroundColor(.secondary)
                     }
                     HStack {

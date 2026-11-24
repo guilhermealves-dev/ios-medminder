@@ -21,9 +21,6 @@ public struct AddEditMedicationView: View {
     @State private var notes: String = ""
     @State private var alertSound: AlertSound = .default
     
-    @State private var showingTimePicker = false
-    @State private var newDoseDate = Date()
-    
     private var weekdays: [(Int, String)] {
         if language.currentLanguage == .ptBR {
             return [
@@ -170,34 +167,41 @@ public struct AddEditMedicationView: View {
                     Text(loc("schedule"))
                 }
                 
-                // Section 4: Dose Times of Day
+                // Section 4: Dose Times of Day (Directly Editable)
                 Section {
                     ForEach(Array(doseTimes.enumerated()), id: \.element.id) { index, dose in
                         HStack {
-                            Text(String(format: loc("dose_number"), index + 1))
-                                .font(.subheadline)
-                            Spacer()
-                            Text(dose.formattedTime)
-                                .font(.headline)
-                                .foregroundColor(.accentColor)
+                            DatePicker(
+                                String(format: loc("dose_number"), index + 1),
+                                selection: bindingForDose(at: dose.id),
+                                displayedComponents: .hourAndMinute
+                            )
                             
-                            Button {
-                                if doseTimes.count > 1 {
-                                    doseTimes.remove(at: index)
+                            if doseTimes.count > 1 {
+                                Button {
+                                    withAnimation {
+                                        doseTimes.removeAll { $0.id == dose.id }
+                                    }
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundColor(.red)
+                                        .font(.title3)
                                 }
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundColor(.red)
+                                .buttonStyle(.plain)
+                                .padding(.leading, 4)
                             }
-                            .buttonStyle(.plain)
-                            .disabled(doseTimes.count <= 1)
                         }
                     }
                     
                     Button {
-                        showingTimePicker = true
+                        withAnimation {
+                            let lastHour = doseTimes.last?.hour ?? 8
+                            let nextHour = (lastHour + 4) % 24
+                            let newDose = DoseTime(hour: nextHour, minute: 0)
+                            doseTimes.append(newDose)
+                        }
                     } label: {
-                        Label(loc("add_another_time"), systemImage: "plus")
+                        Label(loc("add_another_time"), systemImage: "plus.circle.fill")
                             .foregroundColor(.accentColor)
                     }
                 } header: {
@@ -280,48 +284,29 @@ public struct AddEditMedicationView: View {
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-            .sheet(isPresented: $showingTimePicker) {
-                timePickerSheet
-            }
             .onAppear {
                 loadExistingData()
             }
         }
     }
     
-    // Time picker sheet
-    private var timePickerSheet: some View {
-        NavigationView {
-            VStack {
-                DatePicker(
-                    loc("select_time"),
-                    selection: $newDoseDate,
-                    displayedComponents: .hourAndMinute
-                )
-                .datePickerStyle(.wheel)
-                .labelsHidden()
-                .padding()
-                
-                Spacer()
+    // Binding helper for individual doses by UUID
+    private func bindingForDose(at id: UUID) -> Binding<Date> {
+        Binding(
+            get: {
+                guard let dose = doseTimes.first(where: { $0.id == id }) else { return Date() }
+                var comps = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+                comps.hour = dose.hour
+                comps.minute = dose.minute
+                return Calendar.current.date(from: comps) ?? Date()
+            },
+            set: { newDate in
+                guard let idx = doseTimes.firstIndex(where: { $0.id == id }) else { return }
+                let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
+                doseTimes[idx].hour = comps.hour ?? 8
+                doseTimes[idx].minute = comps.minute ?? 0
             }
-            .navigationTitle(loc("select_time"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(loc("cancel")) { showingTimePicker = false }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(loc("add")) {
-                        let comps = Calendar.current.dateComponents([.hour, .minute], from: newDoseDate)
-                        let newDose = DoseTime(hour: comps.hour ?? 8, minute: comps.minute ?? 0)
-                        doseTimes.append(newDose)
-                        doseTimes.sort { ($0.hour * 60 + $0.minute) < ($1.hour * 60 + $1.minute) }
-                        showingTimePicker = false
-                    }
-                    .fontWeight(.bold)
-                }
-            }
-        }
+        )
     }
     
     private func loadExistingData() {
@@ -345,6 +330,10 @@ public struct AddEditMedicationView: View {
         let stockVal = Double(currentStock) ?? 30
         let thresholdVal = Double(refillThreshold) ?? 5
         
+        // Sort doses chronologically before saving
+        var sortedDoses = doseTimes
+        sortedDoses.sort { ($0.hour * 60 + $0.minute) < ($1.hour * 60 + $1.minute) }
+        
         let med = Medication(
             id: editingMedication?.id ?? UUID(),
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -354,7 +343,7 @@ public struct AddEditMedicationView: View {
             instruction: instruction,
             frequency: frequency,
             selectedDays: selectedDays,
-            doseTimes: doseTimes,
+            doseTimes: sortedDoses,
             currentStock: stockVal,
             refillThreshold: thresholdVal,
             refillAlertEnabled: refillAlertEnabled,
