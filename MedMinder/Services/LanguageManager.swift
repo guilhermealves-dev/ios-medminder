@@ -74,10 +74,10 @@ public final class LanguageManager: ObservableObject {
         case "action_take": return isPt ? "Tomar" : "Take"
             
         // MARK: Periods
+        case "period_dawn": return isPt ? "Madrugada" : "Late Night"
         case "period_morning": return isPt ? "Manhã" : "Morning"
         case "period_afternoon": return isPt ? "Tarde" : "Afternoon"
-        case "period_evening": return isPt ? "Noite" : "Evening"
-        case "period_night": return isPt ? "Madrugada" : "Night"
+        case "period_night": return isPt ? "Noite" : "Night"
             
         // MARK: Forms
         case "form_capsule": return isPt ? "Cápsula" : "Capsule"

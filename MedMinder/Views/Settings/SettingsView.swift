@@ -161,7 +161,7 @@ public struct SettingsView: View {
                     HStack {
                         Label(loc("version_label"), systemImage: "number")
                         Spacer()
-                        Text("1.0.5")
+                        Text("1.0.6")
                             .foregroundColor(.secondary)
                     }
                     HStack {

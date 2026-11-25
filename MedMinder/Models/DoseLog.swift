@@ -20,45 +20,45 @@ public enum DoseStatus: String, CaseIterable, Codable {
 
 // MARK: - Day Period for Grouping
 public enum DayPeriod: String, CaseIterable, Identifiable {
+    case dawn = "Dawn"
     case morning = "Morning"
     case afternoon = "Afternoon"
-    case evening = "Evening"
     case night = "Night"
     
     public var id: String { rawValue }
     
     public var localizedTitle: String {
         switch self {
+        case .dawn: return loc("period_dawn")
         case .morning: return loc("period_morning")
         case .afternoon: return loc("period_afternoon")
-        case .evening: return loc("period_evening")
         case .night: return loc("period_night")
         }
     }
     
     public var icon: String {
         switch self {
+        case .dawn: return "moon.zzz.fill"
         case .morning: return "sunrise.fill"
         case .afternoon: return "sun.max.fill"
-        case .evening: return "sunset.fill"
         case .night: return "moon.stars.fill"
         }
     }
     
     public var color: Color {
         switch self {
+        case .dawn: return .purple
         case .morning: return .orange
         case .afternoon: return .yellow
-        case .evening: return .indigo
-        case .night: return .purple
+        case .night: return .indigo
         }
     }
     
     public static func forHour(_ hour: Int) -> DayPeriod {
         switch hour {
+        case 0..<5: return .dawn
         case 5..<12: return .morning
-        case 12..<17: return .afternoon
-        case 17..<21: return .evening
+        case 12..<18: return .afternoon
         default: return .night
         }
     }
